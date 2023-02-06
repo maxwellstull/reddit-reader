@@ -56,7 +56,6 @@ reddit = praw.Reddit(client_id="wbOHDFUEwMZstfLaG0n08g",#my client id
 YTSB = Image.new('RGB',(END_SIZE[0],END_SIZE[1]),color='white')
 imgDraw = ImageDraw.Draw(YTSB)
 YTSB.save(os.getcwd() +'/YTSB.png')
-    
 YTSBack = ImageClip(os.getcwd() + '/YTSB.png').set_duration(DURATION).set_start(0)
 
 
