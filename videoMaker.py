@@ -16,7 +16,7 @@ from html2image import Html2Image
 
 
 # Acessing the reddit api
-COMMENTS = 10
+COMMENTS = 1
 END_SIZE = (720,1280)
 MULTITHREADING = 6
 DURATION = 60
@@ -44,7 +44,7 @@ reddit = praw.Reddit(client_id="wbOHDFUEwMZstfLaG0n08g",#my client id
                      password = "",
                      check_for_async=False)     # your reddit password
 
-sub = ['Askreddit','lifeprotips']  # make a list of subreddits you want to scrape the data from
+sub = ['lifeprotips']#,'askreddit']  # make a list of subreddits you want to scrape the data from
 
 
 
@@ -96,7 +96,7 @@ for s in sub:
         
     for item in query:
         
-        for submission in subreddit.search(query,limit = 5):
+        for submission in subreddit.search(query,limit = 1):
             post_dict = {
                 "title" : [],
                 "score" : [],
@@ -171,11 +171,11 @@ for s in sub:
             
             
 
-            text = submission.selftext
+            text = submission.title
             newlines = text.count("\n")
             strlen = len(text)
-            rows = math.ceil(strlen / 105)
-            title_delta = 130+(rows*14)+(newlines*10)
+            rows = math.ceil(strlen / 50)
+            title_delta = 70+(rows*23)+(newlines*10)
             
             
             hti = Html2Image(output_path=os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id),size=(360,title_delta))
@@ -228,6 +228,7 @@ for s in sub:
             #final_clip = concatenate_videoclips([clip])
             if next_start_ptr < DURATION:
                 clip = clip.subclip(0, next_start_ptr + 0.5)
+            clip = clip.subclip(0, 60)
             clip.write_videofile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", threads=MULTITHREADING)
 
 
