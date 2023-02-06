@@ -16,9 +16,10 @@ from html2image import Html2Image
 
 
 # Acessing the reddit api
-COMMENTS = 10
-END_SIZE = (1280,720)
+COMMENTS = 1
+END_SIZE = (720,1280)
 MULTITHREADING = 6
+DURATION = 10
 
 def get_text_dimensions(text_string, font):
     # https://stackoverflow.com/a/46220683/9263761
@@ -30,7 +31,7 @@ def get_text_dimensions(text_string, font):
     return (text_width, text_height)
 
 def generateHTML(sub="",pid="",cid="",h=300):
-    return """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/comments/{commentid}/?depth=1&amp;showmore=false&amp;embed=true&amp;showmedia=false" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="640" height="{h}"></iframe>""".format(sub=sub,postid=pid,commentid=cid,h=h)
+    return """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/comments/{commentid}/?depth=1&amp;showmore=false&amp;embed=true&amp;showmedia=false" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="360" height="{h}"></iframe>""".format(sub=sub,postid=pid,commentid=cid,h=2*h)
 
 
 
@@ -44,6 +45,32 @@ reddit = praw.Reddit(client_id="wbOHDFUEwMZstfLaG0n08g",#my client id
                      check_for_async=False)     # your reddit password
 
 sub = ['Askreddit']  # make a list of subreddits you want to scrape the data from
+
+
+
+# if submission.selftext:
+#     bodyTTS = AudioFileClip(os.getcwd() + "/" + str(submission.id)+"/"+ "body.mp3")
+#     audioclips.append(bodyTTS)
+    
+#     message = submission.selftext
+#     img = Image.new('RGB',(width,height),color='white')
+#     imgDraw = ImageDraw.Draw(img)
+#     imgDraw.text((0,0), message, fill=(0,0,0),font=ImageFont.truetype("arial.ttf",size=20))  #320 x 180
+#     img.save(os.getcwd() + "/" + str(submission.id)+'/body.png')
+    
+#     bodyimage = ImageClip(os.getcwd() + "/" + str(submission.id)+'/body.png').set_duration(bodyTTS.duration).set_start(next_start_ptr)
+#     next_start_ptr = next_start_ptr + bodyTTS.duration
+#     clip = CompositeVideoClip([clip, bodyimage])
+
+
+YTSB = Image.new('RGB',(END_SIZE[0],END_SIZE[1]),color='white')
+imgDraw = ImageDraw.Draw(YTSB)
+YTSB.save(os.getcwd() +'/YTSB.png')
+    
+YTSBack = ImageClip(os.getcwd() + '/YTSB.png').set_duration(DURATION).set_start(0)
+
+
+
 
 for s in sub:
     subreddit = reddit.subreddit(s)   # Chosing the subreddit
@@ -123,14 +150,17 @@ for s in sub:
 
             next_start_ptr = 0
 
-            clipstart = random.randint(0, 20)
-            clipy = VideoFileClip("filler.mp4").subclip(clipstart*60, (clipstart*60)+120)
-            clipy = clipy.resize(END_SIZE)
+            clipstart = random.randint(0, 10)
+            clipy = VideoFileClip("filler.mp4").subclip(clipstart*60, (clipstart*60)+DURATION)
+            clipy = clipy.resize(width=END_SIZE[0])
+            clipy = clipy.set_position((0,(END_SIZE[1]-clipy.h)))
+            
+            clip = [YTSBack,clipy]
             
             audioclips = []
             titleTTS = AudioFileClip(os.getcwd() + "/" + str(submission.id)+"/"+ "title.mp3")
 
-
+        
             
             
 
@@ -141,13 +171,20 @@ for s in sub:
             title_delta = 130+(rows*14)+(newlines*10)
             
             
-            hti = Html2Image(output_path=os.getcwd() + "/" + str(submission.id),size=(640,title_delta))
-            title_html = """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/?depth=1&amp;showmore=false&amp;embed=true&amp;showmedia=false" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="640" height="{h}"></iframe>""".format(sub=submission.subreddit,postid=submission.id,h=title_delta)
+            hti = Html2Image(output_path=os.getcwd() + "/" + str(submission.id),size=(360,title_delta))
+            title_html = """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/?depth=1&amp;showmore=false&amp;embed=true&amp;showmedia=false" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="360" height="{h}"></iframe>""".format(sub=submission.subreddit,postid=submission.id,h=title_delta*2)
             hti.screenshot(html_str=title_html, save_as='title.png')
             
-            titleimage = ImageClip(os.getcwd() + "/" + str(submission.id)+'/title.png').set_duration(clip.duration).set_start(next_start_ptr)
+            titleimage = ImageClip(os.getcwd() + "/" + str(submission.id)+'/title.png').set_duration(DURATION).set_start(next_start_ptr)
+            titleimage = titleimage.resize(2)
             next_start_ptr = next_start_ptr + titleTTS.duration
-            clip = [clipy, titleimage]
+            
+            
+            
+            
+            
+            
+            clip.append(titleimage)
 
             audioclips.append(titleTTS)
                 
@@ -169,11 +206,11 @@ for s in sub:
                                 
                 
                 bodyimage = ImageClip(os.getcwd() + "/" + str(submission.id)+'/' + str(row.id)+'.png').set_duration(af.duration).set_start(next_start_ptr)
-        
-                x = (END_SIZE[0] - abs(bodyimage.w))/2
-                y = (((END_SIZE[1] - title_delta) - abs(bodyimage.h)) / 2) + title_delta
+                x=0
+                y = title_delta + 200
                 
                 bodyimage = bodyimage.set_position((x,y))
+                bodyimage = bodyimage.resize(2)
                 next_start_ptr = next_start_ptr + af.duration
                 clippies.append(bodyimage)
                 
@@ -183,7 +220,7 @@ for s in sub:
             audioclipy = concatenate_audioclips(audioclips)
             clip = clip.set_audio(audioclipy)
             #final_clip = concatenate_videoclips([clip])
-            clip.write_videofile(os.getcwd() + "/" + str(submission.id)+"/"+ str(submission.id)+".mp4", threads=MULTITHREADING)
+            clip.write_videofile(os.getcwd() + "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", threads=MULTITHREADING)
 
 
 
