@@ -1,0 +1,4 @@
+- remove try & except from make folder, make it check if it exists
+- make it render with gpu
+- make it faster or make videos play faster
+- better choosing of the article

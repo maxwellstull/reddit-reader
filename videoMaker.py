@@ -16,10 +16,10 @@ from html2image import Html2Image
 
 
 # Acessing the reddit api
-COMMENTS = 1
+COMMENTS = 10
 END_SIZE = (720,1280)
 MULTITHREADING = 6
-DURATION = 10
+DURATION = 60
 
 def get_text_dimensions(text_string, font):
     # https://stackoverflow.com/a/46220683/9263761
@@ -44,7 +44,7 @@ reddit = praw.Reddit(client_id="wbOHDFUEwMZstfLaG0n08g",#my client id
                      password = "",
                      check_for_async=False)     # your reddit password
 
-sub = ['Askreddit']  # make a list of subreddits you want to scrape the data from
+sub = ['Askreddit','lifeprotips']  # make a list of subreddits you want to scrape the data from
 
 
 
@@ -75,7 +75,10 @@ YTSBack = ImageClip(os.getcwd() + '/YTSB.png').set_duration(DURATION).set_start(
 for s in sub:
     subreddit = reddit.subreddit(s)   # Chosing the subreddit
 
-
+    try:
+        os.mkdir(os.getcwd() + "/" + str(subreddit.display_name))
+    except:
+        pass
 ########################################
 #   CREATING DICTIONARY TO STORE THE DATA WHICH WILL BE CONVERTED TO A DATAFRAME
 ########################################
@@ -85,7 +88,7 @@ for s in sub:
 #   BE CAPTURING ALL IDS THAT COME IN OUR WAY
 
 # SCRAPING CAN BE DONE VIA VARIOUS STRATEGIES {HOT,TOP,etc} we will go with keyword strategy i.e using search a keyword
-    query = ['Gaming']
+    query = ['if']
 
   #  result = subreddit.search(query, sort="top", limit=1)
   #  print(result)
@@ -93,7 +96,7 @@ for s in sub:
         
     for item in query:
         
-        for submission in subreddit.search(query,limit = 1):
+        for submission in subreddit.search(query,limit = 5):
             post_dict = {
                 "title" : [],
                 "score" : [],
@@ -109,7 +112,7 @@ for s in sub:
             }
             print("TITLE:", submission.title)
             try:
-                os.mkdir(os.getcwd() + "/" + str(submission.id)+"/")
+                os.mkdir(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id))
             except:
                 pass
             print(submission.score)
@@ -136,29 +139,33 @@ for s in sub:
             pc = pc.sort_values(by=["score"], ascending=False)
             
             tts = gtts.gTTS(submission.title)
-            tts.save(os.getcwd() + "/" + str(submission.id)+"/"+ "title.mp3")
+            tts.save(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ "title.mp3")
             if submission.selftext:
                 tts = gtts.gTTS(submission.selftext)
-                tts.save(os.getcwd() + "/" + str(submission.id)+"/"+ "body.mp3")
+                tts.save(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ "body.mp3")
             
             for i, row in pc.iloc[:COMMENTS].iterrows():
                 tts = gtts.gTTS(row.body)
-                tts.save(os.getcwd() + "/" + str(submission.id)+"/"+ str(row.id)+".mp3")
+                tts.save(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ str(row.id)+".mp3")
             pdi = pd.DataFrame(post_dict)
 #            pc.to_csv(os.getcwd() + "/" + str(submission.id)+"/"+"comments.csv")
 #            pdi.to_csv(os.getcwd() + "/" + str(submission.id)+"/"+"post.csv")
 
             next_start_ptr = 0
 
-            clipstart = random.randint(0, 10)
-            clipy = VideoFileClip("filler.mp4").subclip(clipstart*60, (clipstart*60)+DURATION)
+            os.chdir("Content")
+            file = random.choice(os.listdir())
+            os.chdir("../")
+            clipy = VideoFileClip("Content/"+file)            
+            clipstart = random.randint(0, int(clipy.duration-(DURATION+30)))
+            clipy = VideoFileClip("Content/"+file).subclip(clipstart, clipstart+DURATION)
             clipy = clipy.resize(width=END_SIZE[0])
             clipy = clipy.set_position((0,(END_SIZE[1]-clipy.h)))
             
             clip = [YTSBack,clipy]
             
             audioclips = []
-            titleTTS = AudioFileClip(os.getcwd() + "/" + str(submission.id)+"/"+ "title.mp3")
+            titleTTS = AudioFileClip(os.getcwd()+ "/" + str(subreddit.display_name) + "/" + str(submission.id)+"/"+ "title.mp3")
 
         
             
@@ -171,11 +178,11 @@ for s in sub:
             title_delta = 130+(rows*14)+(newlines*10)
             
             
-            hti = Html2Image(output_path=os.getcwd() + "/" + str(submission.id),size=(360,title_delta))
+            hti = Html2Image(output_path=os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id),size=(360,title_delta))
             title_html = """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/?depth=1&amp;showmore=false&amp;embed=true&amp;showmedia=false" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="360" height="{h}"></iframe>""".format(sub=submission.subreddit,postid=submission.id,h=title_delta*2)
             hti.screenshot(html_str=title_html, save_as='title.png')
             
-            titleimage = ImageClip(os.getcwd() + "/" + str(submission.id)+'/title.png').set_duration(DURATION).set_start(next_start_ptr)
+            titleimage = ImageClip(os.getcwd()+ "/" + str(subreddit.display_name) + "/" + str(submission.id)+'/title.png').set_duration(DURATION).set_start(next_start_ptr)
             titleimage = titleimage.resize(2)
             next_start_ptr = next_start_ptr + titleTTS.duration
             
@@ -191,7 +198,7 @@ for s in sub:
                 
             clippies = clip
             for i, row in pc.iloc[:COMMENTS].iterrows():
-                af = AudioFileClip(os.getcwd() + "/" + str(submission.id)+"/"+ str(row.id)+".mp3")
+                af = AudioFileClip(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ str(row.id)+".mp3")
                 audioclips.append(af)
                 text = row.body
 
@@ -200,12 +207,12 @@ for s in sub:
                 rows = math.ceil(strlen / 105)
                 
                 res = generateHTML(submission.subreddit,submission.id,row.id,h=130+(rows*13)+(newlines*10))
-                hti = Html2Image(output_path=os.getcwd() + "/" + str(submission.id),size=(640,130+(rows*13)+(newlines*10)))
+                hti = Html2Image(output_path=os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id),size=(640,130+(rows*13)+(newlines*10)))
                 hti.screenshot(html_str=res, save_as=str(row.id)+'.png')
                 
                                 
                 
-                bodyimage = ImageClip(os.getcwd() + "/" + str(submission.id)+'/' + str(row.id)+'.png').set_duration(af.duration).set_start(next_start_ptr)
+                bodyimage = ImageClip(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+'/' + str(row.id)+'.png').set_duration(af.duration).set_start(next_start_ptr)
                 x=0
                 y = title_delta + 200
                 
@@ -215,12 +222,13 @@ for s in sub:
                 clippies.append(bodyimage)
                 
                 
-                
             clip = CompositeVideoClip(clippies)
             audioclipy = concatenate_audioclips(audioclips)
             clip = clip.set_audio(audioclipy)
             #final_clip = concatenate_videoclips([clip])
-            clip.write_videofile(os.getcwd() + "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", threads=MULTITHREADING)
+            if next_start_ptr < DURATION:
+                clip = clip.subclip(0, next_start_ptr + 0.5)
+            clip.write_videofile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", threads=MULTITHREADING)
 
 
 
