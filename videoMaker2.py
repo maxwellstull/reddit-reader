@@ -14,12 +14,20 @@ from moviepy.editor import *
 from PIL import Image, ImageDraw, ImageFont
 from html2image import Html2Image
 import csv
+import pyttsx3 
+
 
 # Acessing the reddit api
 COMMENTS = 10
 END_SIZE = (720,1280)
 MULTITHREADING = 6
 DURATION = 60
+
+
+engine = pyttsx3.init()
+engine.setProperty('rate',150)
+engine.setProperty('voice',"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0")
+
 
 def get_text_dimensions(text_string, font):
     # https://stackoverflow.com/a/46220683/9263761
@@ -43,24 +51,6 @@ reddit = praw.Reddit(client_id="wbOHDFUEwMZstfLaG0n08g",#my client id
                      username = "",     # your reddit username
                      password = "",
                      check_for_async=False)     # your reddit password
-
-sub = ['lifeprotips']#,'askreddit']  # make a list of subreddits you want to scrape the data from
-
-
-
-# if submission.selftext:
-#     bodyTTS = AudioFileClip(os.getcwd() + "/" + str(submission.id)+"/"+ "body.mp3")
-#     audioclips.append(bodyTTS)
-    
-#     message = submission.selftext
-#     img = Image.new('RGB',(width,height),color='white')
-#     imgDraw = ImageDraw.Draw(img)
-#     imgDraw.text((0,0), message, fill=(0,0,0),font=ImageFont.truetype("arial.ttf",size=20))  #320 x 180
-#     img.save(os.getcwd() + "/" + str(submission.id)+'/body.png')
-    
-#     bodyimage = ImageClip(os.getcwd() + "/" + str(submission.id)+'/body.png').set_duration(bodyTTS.duration).set_start(next_start_ptr)
-#     next_start_ptr = next_start_ptr + bodyTTS.duration
-#     clip = CompositeVideoClip([clip, bodyimage])
 
 
 YTSB = Image.new('RGB',(END_SIZE[0],END_SIZE[1]),color='white')
@@ -132,17 +122,16 @@ for submission in submissions:
     pdi = pd.DataFrame(post_dict)
     
     # Text-to-speech & save of submission title
-    tts = gtts.gTTS(submission.title)
-    tts.save(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ "title.mp3")
+    engine.save_to_file(submission.title,os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ "title.mp3")
+    engine.runAndWait()
     # If there's a description, TTS & save
     if submission.selftext:
-        tts = gtts.gTTS(submission.selftext)
-        tts.save(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ "body.mp3")
+        engine.save_to_file(submission.selftext, os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ "body.mp3")
+        engine.runAndWait()
     # TTS & save of the top however many comments
     for i, row in pc.iloc[:COMMENTS].iterrows():
-        tts = gtts.gTTS(row.body)
-        tts.save(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ str(row.id)+".mp3")
-    
+        engine.save_to_file(row.body, os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ str(row.id)+".mp3")
+        engine.runAndWait()
     # Little cheese boy that chooses when the audio clips start
     next_start_ptr = 0
 
@@ -163,7 +152,6 @@ for submission in submissions:
     audioclips = []
     # Obtain title TTS file
     titleTTS = AudioFileClip(os.getcwd()+ "/" + str(subreddit.display_name) + "/" + str(submission.id)+"/"+ "title.mp3")
-    titleTTS = titleTTS.fx(vfx.speedx,1.1)
     # Generate how long the title block should be
     text = submission.title
     newlines = text.count("\n")
@@ -178,39 +166,31 @@ for submission in submissions:
     titleimage = ImageClip(os.getcwd()+ "/" + str(subreddit.display_name) + "/" + str(submission.id)+'/title.png').set_duration(DURATION).set_start(next_start_ptr)
     titleimage = titleimage.resize(2)
     next_start_ptr = next_start_ptr + titleTTS.duration
-    
-    
-    
-    
-    
-    
+    # Add the title stuff to the collection of clips
     clip.append(titleimage)
-
     audioclips.append(titleTTS)
-        
-        
     clippies = clip
+    # Go over all the comments and do what we did for the title
     for i, row in pc.iloc[:COMMENTS].iterrows():
+        # Get audiofile
         af = AudioFileClip(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/"+ str(row.id)+".mp3")
-        af = af.fx(vfx.speedx,1.1)
         audioclips.append(af)
+        # Figure out screenshot size
         text = row.body
-
         newlines = text.count("\n")
         strlen = len(text)
         rows = math.ceil(strlen / 60)
         height = 110+(rows*20)+(newlines*5)
-        
+        # Do it        
         res = generateHTML(submission.subreddit,submission.id,row.id,h=height)
         hti = Html2Image(output_path=os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id),size=(360,height))
         hti.screenshot(html_str=res, save_as=str(row.id)+'.png')
-        
-                        
-        
+        # Clip thing
         bodyimage = ImageClip(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+'/' + str(row.id)+'.png').set_duration(af.duration).set_start(next_start_ptr)
+        # Generate position
         x = 0
         y = title_delta + 200
-        
+                
         bodyimage = bodyimage.set_position((x,y))
         bodyimage = bodyimage.resize(2)
         next_start_ptr = next_start_ptr + af.duration
