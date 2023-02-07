@@ -111,11 +111,11 @@ class Comment():
     def getAFC(self):
         self.af = AudioFileClip(self.audio_file)
         return self.af
-    def getIC(self, start_time=0,title_offset=200):
+    def getIC(self, start_time=0):
         bi = ImageClip(self.image_file_path + '/' + str(self.id)+'.png')
         bi = bi.set_duration(self.af.duration)
         bi = bi.set_start(start_time)
-        bi = bi.set_position((0,title_offset+200))
+        
         self.bi = bi.resize(2)
         return self.bi
     def generateHTML(self,sub="",pid="",cid="",h=1):
@@ -215,7 +215,7 @@ def main():
         vcl.append(title.getIC())
         acl.append(title.getAFC())
         
-        title_offset = title.image_height + 10
+        
         next_start_ptr = title.getAFC().duration
         
         comment_list = sorted(comments,reverse=True)[:COMMENTS]
@@ -226,8 +226,15 @@ def main():
             engine.save_to_file(comment.text, comment.audio_file)
             engine.runAndWait()            
             
+            
+            
             af = comment.getAFC()
-            vf = comment.getIC(next_start_ptr,title_offset)
+            vf = comment.getIC(next_start_ptr)
+            print(END_SIZE[1],background_clip.h, title.image_height, vf.h)
+            title_offset = ((((END_SIZE[1] - background_clip.h)-(title.image_height*2)) - vf.h)/2)+(title.image_height*2)
+            print(title_offset)
+            vf = vf.set_position((0, title_offset))
+            
             next_start_ptr = next_start_ptr + af.duration
             
             vcl.append(vf)
