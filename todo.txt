@@ -1,12 +1,12 @@
 - add generation of txt file that has title and tags
 - auto upload to youtube(pain in the butt https://developers.google.com/youtube/v3/guides/uploading_a_video)
 - make it steal images and put those in the video
-- change comment placement to be split between bottom video and title block
-- better choosing of the article
+in progress - better choosing of the article
 - better choosing of background video
-- get other voices working (change TTS library again?)
-- auto copy finished video somewhere to be easily found
+in progress - get other voices working (change TTS library again?)
 - make it render with gpu
 DONE - remove try & except from make folder, make it check if it exists
 DONE - make it faster or make videos play faster
 DONE - add banned word list
+DONE - change comment placement to be split between bottom video and title block
+DONE - auto copy finished video somewhere to be easily found

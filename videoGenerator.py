@@ -12,6 +12,7 @@ from html2image import Html2Image
 import csv
 import pyttsx3 
 import json
+import shutil
 
 
 engine = pyttsx3.init()
@@ -254,9 +255,11 @@ def main():
         if next_start_ptr < DURATION:
             videoclips = videoclips.subclip(0, next_start_ptr + 0.5)
         else:
-            videoclips = videoclips.subclip(0, 59.5)
+            videoclips = videoclips.subclip(0, DURATION-0.1)
         videoclips = videoclips.set_fps(30)
         videoclips.write_videofile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", threads=MULTITHREADING)
+       
+        shutil.copyfile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", os.getcwd() + "/Videos" + "/YTShort"+ str(submission.id)+".mp4")
        
         # this is temporary for development. once dev is done, json will load and dump only ONCE
         # but because i stop the script so often its gonna do it every time
