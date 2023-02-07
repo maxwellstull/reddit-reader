@@ -182,7 +182,7 @@ def main():
     for submission in submissions:
         subreddit = submission.subreddit
         
-        if not os.exists(os.getcwd() + "/" + str(subreddit.display_name)):
+        if not os.path.exists(os.getcwd() + "/" + str(subreddit.display_name)):
             os.mkdir(os.getcwd() + "/" + str(subreddit.display_name))
 
         if submission.id in jason:
