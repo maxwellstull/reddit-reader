@@ -11,8 +11,7 @@ from PIL import Image, ImageDraw, ImageFont
 from html2image import Html2Image
 import csv
 import pyttsx3 
-from enum import Enum
-import shutil
+import json
 
 
 engine = pyttsx3.init()
@@ -25,22 +24,28 @@ END_SIZE = (720,1280)
 row_char_width=60
 shorts_width = int(END_SIZE[0] / 2)
 MULTITHREADING = 6
-MODE = 'topday' # 'csv', 'search', 'topday', 'topweek'
+MODE = 'csv' # 'csv', 'search', 'topday', 'topweek'
 
 class Title():
-    def __init__(self, submission_id,score,title,sub,engine):
+    def __init__(self, submission_id,score,title,sub,engine,text=""):
         self.id = submission_id
         self.score = score
         self.title = title
         self.subreddit = sub
         self.engine = engine
-            
+        self.text = text
+        
         self.audio_file = os.getcwd() + "/" + str(self.subreddit.display_name)+ "/" + str(self.id)+"/title.mp3"
         self.image_file_path = os.getcwd() + "/" + str(self.subreddit.display_name)+ "/" + str(self.id)+"/"
         newlines=self.title.count("\n")
         strlen=len(self.title)
         rows = math.ceil(strlen/row_char_width)
-        self.image_height = 110+(rows*22)+(newlines*5)
+        if self.text == "":
+            self.image_height = 110+(rows*22)+(newlines*5)
+        else:
+            textrows = math.ceil(len(self.text) / 50)
+            text_newlines = self.text.count("\n")
+            self.image_height = 110+(rows*22)+(newlines*5)+(textrows*17)+(text_newlines*4)
     def process(self):
         self.TTS()
         self.SS()
@@ -49,7 +54,8 @@ class Title():
         #self.engine.save_to_file(self.title,self.audio_file)
         #self.engine.runAndWait()
     def SS(self):
-        res=title_html = """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/?depth=1&amp;showmore=false&amp;embed=true&amp;showmedia=false" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="360" height="{h}"></iframe>""".format(sub=self.subreddit,postid=self.id,h=self.image_height)
+        res=title_html = """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/?ref_source=embed&amp;ref=share&amp;embed=true" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="360" height="{h}"></iframe>""".format(sub=self.subreddit,postid=self.id,h=self.image_height)
+                        #    <iframe id="reddit-embed" src="https://www.redditmedia.com/r/AskMen/comments/10v90en/men_whats_your_opinionss_on_homie_hoppers/?ref_source=embed&amp;ref=share&amp;embed=true" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="640" height="166"></iframe>
         hti = Html2Image(output_path=self.image_file_path,size=(shorts_width,self.image_height))
         hti.screenshot(html_str=res,save_as='title.png')
     def getAFC(self):
@@ -112,23 +118,16 @@ class Comment():
         bi = bi.set_position((0,title_offset+200))
         self.bi = bi.resize(2)
         return self.bi
-        
-        
     def generateHTML(self,sub="",pid="",cid="",h=1):
         return """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/comments/{commentid}/?depth=1&amp;showmore=false&amp;embed=true&amp;showmedia=false" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="360" height="{h}"></iframe>""".format(sub=sub,postid=pid,commentid=cid,h=h)
-
     def __lt__(self, obj):
-        return ((self.score) < (obj.score))
-  
+        return ((self.score) < (obj.score))  
     def __gt__(self, obj):
-        return ((self.score) > (obj.score))
-  
+        return ((self.score) > (obj.score))  
     def __le__(self, obj):
-        return ((self.score) <= (obj.score))
-  
+        return ((self.score) <= (obj.score))  
     def __ge__(self, obj):
         return ((self.score) >= (obj.score))
-  
     def __eq__(self, obj):
         return (self.score == obj.score)
     def __repr__(self):
@@ -152,6 +151,8 @@ def main():
     engine.setProperty('rate',150)
     engine.setProperty('voice',"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0")
     
+    with open('visitedposts.json','r') as fp:
+        jason = json.load(fp)
     
     submissions = []
     subs = ['AskReddit','AmITheAsshole']
@@ -165,7 +166,6 @@ def main():
         for sub in subs:
             for submission in reddit.subreddit(sub).search(query, time_filter='week',sort='top',limit=10):
                 submissions.append(submission)
-
     elif MODE == 'topday':
         for sub in subs:
             for submission in reddit.subreddit(sub).top(time_filter='day'):
@@ -175,16 +175,18 @@ def main():
             for submission in reddit.subreddit(sub).top(time_filter='week'):
                 submissions.append(submission)
 
-
-
     for submission in submissions:
         subreddit = submission.subreddit
         try:
             os.mkdir(os.getcwd() + "/" + str(subreddit.display_name))
         except:
             pass
+        if submission.id in jason:
+            print("Skipping because we already rendered for this")
+            continue
+        
         print("Post:",submission.title)
-        title = Title(submission.id,submission.score,submission.title,submission.subreddit,engine)
+        title = Title(submission.id,submission.score,submission.title,submission.subreddit,engine,submission.selftext)
         title.process()
         comments = []
         print("Comments:",len(submission.comments.list()))
@@ -241,6 +243,13 @@ def main():
         videoclips = videoclips.set_fps(30)
         videoclips.write_videofile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", threads=MULTITHREADING)
        
+        # this is temporary for development. once dev is done, json will load and dump only ONCE
+        # but because i stop the script so often its gonna do it every time
+        
+        jason[submission.id] = True
+        with open('visitedposts.json','w') as fp:
+            json.dump(jason, fp)
+        
         
 if __name__ == "__main__":
     main()
