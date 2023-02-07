@@ -10,3 +10,4 @@ DONE - make it faster or make videos play faster
 DONE - add banned word list
 DONE - change comment placement to be split between bottom video and title block
 DONE - auto copy finished video somewhere to be easily found
+DONE - auto-choose clip length based on comment audio lengths, if we have 9 comments and only 3 fit per video then make 3 videos

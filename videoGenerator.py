@@ -218,7 +218,7 @@ def main():
         background_clip = background_clip.resize(width=END_SIZE[0])
         background_clip = background_clip.set_position((0, (END_SIZE[1]-background_clip.h)))
         
-        vcl = [YTSBack, background_clip] # video clip list
+        vcl = [YTSBack] # video clip list
         acl = []    # audio clip list
         
         engine.save_to_file(title.title,title.audio_file)
@@ -231,42 +231,76 @@ def main():
         
         comment_list = sorted(comments,reverse=True)[:COMMENTS]
         random.shuffle(comment_list)
-        print(comment_list)
+        vid_groups = []
+        aud_groups = []
+        vid_group = vcl.copy()
+        vid_group.append(background_clip)
+        aud_group = acl.copy()
         for comment in comment_list:
             comment.process()
             engine.save_to_file(comment.text, comment.audio_file)
             engine.runAndWait()            
-            
-            
             
             af = comment.getAFC()
             vf = comment.getIC(next_start_ptr)
             title_offset = ((((END_SIZE[1] - background_clip.h)-(title.image_height*2)) - vf.h)/2)+(title.image_height*2)
             vf = vf.set_position((0, title_offset))
             
-            next_start_ptr = next_start_ptr + af.duration
+            if next_start_ptr + af.duration > DURATION:
+                vid_groups.append(vid_group)
+                aud_groups.append(aud_group)
+                vid_group = vcl.copy()
+                aud_group = acl.copy()
+                ##########
+                # Randomly select background video from content folder
+                os.chdir("Content")
+                file = random.choice(os.listdir())
+                os.chdir("../")
+                background_clip = VideoFileClip("Content/"+file)
+                clip_start = random.randint(0,int(background_clip.duration-(DURATION+1)))
+                background_clip = background_clip.subclip(clip_start,clip_start+DURATION)
+                background_clip = background_clip.resize(width=END_SIZE[0])
+                background_clip = background_clip.set_position((0, (END_SIZE[1]-background_clip.h)))
+                vid_group.append(background_clip)
+                ###
+                title_offset = ((((END_SIZE[1] - background_clip.h)-(title.image_height*2)) - vf.h)/2)+(title.image_height*2)
+                vf = vf.set_position((0, title_offset))
+                ############
+                next_start_ptr = title.getAFC().duration
+                vid_group.append(vf.set_start(next_start_ptr))
+                aud_group.append(af)
+                next_start_ptr = next_start_ptr + af.duration
+            else:
+                vid_group.append(vf)
+                aud_group.append(af)
+                next_start_ptr = next_start_ptr + af.duration
+        if vid_group not in vid_groups:
+            vid_groups.append(vid_group)
+            aud_groups.append(aud_group)
             
-            vcl.append(vf)
-            acl.append(af)
-            
-        videoclips = CompositeVideoClip(vcl)
-        audioclips = concatenate_audioclips(acl)
-        videoclips = videoclips.set_audio(audioclips)
-        if next_start_ptr < DURATION:
-            videoclips = videoclips.subclip(0, next_start_ptr + 0.5)
-        else:
-            videoclips = videoclips.subclip(0, DURATION-0.1)
-        videoclips = videoclips.set_fps(30)
-        videoclips.write_videofile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", threads=MULTITHREADING)
-       
-        shutil.copyfile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", os.getcwd() + "/Videos" + "/YTShort"+ str(submission.id)+".mp4")
-       
+            #vcl.append(vf)
+            #acl.append(af)
+        for i in range(0, len(vid_groups)):
+            videoclips = CompositeVideoClip(vid_groups[i])
+            audioclips = concatenate_audioclips(aud_groups[i])
+            videoclips = videoclips.set_audio(audioclips)
+            ###### might be useless
+            print(audioclips.duration)
+            if audioclips.duration < DURATION:
+                videoclips = videoclips.subclip(0, audioclips.duration+0.5)
+            else:
+                videoclips = videoclips.subclip(0, DURATION-0.1)
+            #############
+            videoclips = videoclips.set_fps(30)
+            videoclips.write_videofile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YT"+str(i)+"Short"+ str(submission.id)+".mp4", threads=MULTITHREADING)
+            shutil.copyfile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YT"+str(i)+"Short"+ str(submission.id)+".mp4", os.getcwd() + "/Videos" + "/YT"+str(i)+"Short"+ str(submission.id)+".mp4")
+           
         # this is temporary for development. once dev is done, json will load and dump only ONCE
         # but because i stop the script so often its gonna do it every time
         
         jason[submission.id] = True
-        with open('visitedposts.json','w') as fp:
-            json.dump(jason, fp)
+    #    with open('visitedposts.json','w') as fp:
+     #       json.dump(jason, fp)
         
         
 if __name__ == "__main__":
