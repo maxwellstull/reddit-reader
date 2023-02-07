@@ -9,6 +9,7 @@ import os
 from moviepy.editor import *
 from PIL import Image, ImageDraw, ImageFont
 from html2image import Html2Image
+from better_profanity import profanity
 import csv
 import pyttsx3 
 import json
@@ -153,6 +154,10 @@ def main():
     
     with open('visitedposts.json','r') as fp:
         jason = json.load(fp)
+    with open('bannedwords.txt','r') as fp:
+        bad_words = {line.strip():None for line in fp.readlines()}
+    print(bad_words)
+    
     
     submissions = []
     subs = ['AskReddit','AmITheAsshole']
@@ -193,8 +198,14 @@ def main():
         for comment in submission.comments.list():
             if isinstance(comment, MoreComments):
                 continue
-            comment = Comment(comment.id,comment.score,comment.body,comment.body_html,submission.subreddit,submission.id,engine)
-            comments.append(comment)
+            dirty_mouth = False
+            for word in comment.body.split():
+                if word in bad_words:
+                    dirty_mouth = True
+            
+            if dirty_mouth == False:
+                comment = Comment(comment.id,comment.score,comment.body,comment.body_html,submission.subreddit,submission.id,engine)
+                comments.append(comment)
         print("Done with comments")
         ##########
         # Randomly select background video from content folder
@@ -230,9 +241,7 @@ def main():
             
             af = comment.getAFC()
             vf = comment.getIC(next_start_ptr)
-            print(END_SIZE[1],background_clip.h, title.image_height, vf.h)
             title_offset = ((((END_SIZE[1] - background_clip.h)-(title.image_height*2)) - vf.h)/2)+(title.image_height*2)
-            print(title_offset)
             vf = vf.set_position((0, title_offset))
             
             next_start_ptr = next_start_ptr + af.duration
