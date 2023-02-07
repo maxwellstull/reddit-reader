@@ -9,7 +9,6 @@ import os
 from moviepy.editor import *
 from PIL import Image, ImageDraw, ImageFont
 from html2image import Html2Image
-from better_profanity import profanity
 import csv
 import pyttsx3 
 import json
@@ -182,10 +181,10 @@ def main():
 
     for submission in submissions:
         subreddit = submission.subreddit
-        try:
+        
+        if not os.exists(os.getcwd() + "/" + str(subreddit.display_name)):
             os.mkdir(os.getcwd() + "/" + str(subreddit.display_name))
-        except:
-            pass
+
         if submission.id in jason:
             print("Skipping because we already rendered for this")
             continue
