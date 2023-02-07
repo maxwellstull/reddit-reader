@@ -11,19 +11,21 @@ from PIL import Image, ImageDraw, ImageFont
 from html2image import Html2Image
 import csv
 import pyttsx3 
-
+from enum import Enum
+import shutil
 
 
 engine = pyttsx3.init()
 engine.setProperty('rate',150)
 engine.setProperty('voice',"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0")
 
-COMMENTS = 2
+COMMENTS = 10
 DURATION = 60
 END_SIZE = (720,1280)
 row_char_width=60
 shorts_width = int(END_SIZE[0] / 2)
 MULTITHREADING = 6
+MODE = 'topday' # 'csv', 'search', 'topday', 'topweek'
 
 class Title():
     def __init__(self, submission_id,score,title,sub,engine):
@@ -43,8 +45,9 @@ class Title():
         self.TTS()
         self.SS()
     def TTS(self):
-        self.engine.save_to_file(self.title,self.audio_file)
-        self.engine.runAndWait()
+        pass
+        #self.engine.save_to_file(self.title,self.audio_file)
+        #self.engine.runAndWait()
     def SS(self):
         res=title_html = """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/?depth=1&amp;showmore=false&amp;embed=true&amp;showmedia=false" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="360" height="{h}"></iframe>""".format(sub=self.subreddit,postid=self.id,h=self.image_height)
         hti = Html2Image(output_path=self.image_file_path,size=(shorts_width,self.image_height))
@@ -58,25 +61,20 @@ class Title():
         bi = bi.set_start(start_time)
         self.bi = bi.resize(2)
         return self.bi
-        
-        
+ 
     def generateHTML(self,sub="",pid="",cid="",h=1):
         return """<iframe id="reddit-embed" src="https://www.redditmedia.com/r/{sub}/comments/{postid}/comments/{commentid}/?depth=1&amp;showmore=false&amp;embed=true&amp;showmedia=false" sandbox="allow-scripts allow-same-origin allow-popups" style="border: none;" scrolling="no" width="360" height="{h}"></iframe>""".format(sub=sub,postid=pid,commentid=cid,h=h)
-
     def __lt__(self, obj):
-        return ((self.score) < (obj.score))
-  
+        return ((self.score) < (obj.score))  
     def __gt__(self, obj):
         return ((self.score) > (obj.score))
-  
     def __le__(self, obj):
-        return ((self.score) <= (obj.score))
-  
+        return ((self.score) <= (obj.score))  
     def __ge__(self, obj):
-        return ((self.score) >= (obj.score))
-  
+        return ((self.score) >= (obj.score))  
     def __eq__(self, obj):
         return (self.score == obj.score)
+    
 class Comment():
     def __init__(self, cid,score,body,body_html,sub,submission_id,engine):
         self.id = cid
@@ -97,8 +95,9 @@ class Comment():
         self.TTS()
         self.SS()
     def TTS(self):
-        self.engine.save_to_file(self.text,self.audio_file)
-        self.engine.runAndWait()
+        pass
+        #self.engine.save_to_file(self.text,self.audio_file)
+        # self.engine.runAndWait()
     def SS(self):
         res=self.generateHTML(self.subreddit,self.sid,self.id,self.image_height)
         hti = Html2Image(output_path=self.image_file_path,size=(shorts_width,self.image_height))
@@ -155,10 +154,28 @@ def main():
     
     
     submissions = []
-    with open('urls.csv','r') as fp:
-        reader = csv.reader(fp)
-        for i in reader:
-            submissions.append(reddit.submission(url=str(i[0])))
+    subs = ['AskReddit','AmITheAsshole']
+    if MODE == 'csv':
+        with open('urls.csv','r') as fp:
+            reader = csv.reader(fp)
+            for i in reader:
+                submissions.append(reddit.submission(url=str(i[0])))
+    elif MODE == 'search':
+        query = "?"
+        for sub in subs:
+            for submission in reddit.subreddit(sub).search(query, time_filter='week',sort='top',limit=10):
+                submissions.append(submission)
+
+    elif MODE == 'topday':
+        for sub in subs:
+            for submission in reddit.subreddit(sub).top(time_filter='day'):
+                submissions.append(submission)
+    elif MODE == 'topweek':
+        for sub in subs:
+            for submission in reddit.subreddit(sub).top(time_filter='week'):
+                submissions.append(submission)
+
+
 
     for submission in submissions:
         subreddit = submission.subreddit
@@ -191,10 +208,12 @@ def main():
         vcl = [YTSBack, background_clip] # video clip list
         acl = []    # audio clip list
         
+        engine.save_to_file(title.title,title.audio_file)
+        engine.runAndWait()
         vcl.append(title.getIC())
         acl.append(title.getAFC())
         
-        title_offset = title.image_height + 50
+        title_offset = title.image_height + 10
         next_start_ptr = title.getAFC().duration
         
         comment_list = sorted(comments,reverse=True)[:COMMENTS]
@@ -202,6 +221,9 @@ def main():
         print(comment_list)
         for comment in comment_list:
             comment.process()
+            engine.save_to_file(comment.text, comment.audio_file)
+            engine.runAndWait()            
+            
             af = comment.getAFC()
             vf = comment.getIC(next_start_ptr,title_offset)
             next_start_ptr = next_start_ptr + af.duration
@@ -218,8 +240,7 @@ def main():
             videoclips = videoclips.subclip(0, 59.5)
         videoclips = videoclips.set_fps(30)
         videoclips.write_videofile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YTShort"+ str(submission.id)+".mp4", threads=MULTITHREADING)
-        
-        
+       
         
 if __name__ == "__main__":
     main()
