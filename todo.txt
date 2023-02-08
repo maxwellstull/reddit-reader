@@ -5,6 +5,8 @@ in progress - better choosing of the article
 - better choosing of background video
 in progress - get other voices working (change TTS library again?)
 - make it render with gpu
+- make Title and Comment objects inherit a common object 
+- optimize comment generation (dont make 900 objects when we only use 10)
 DONE - remove try & except from make folder, make it check if it exists
 DONE - make it faster or make videos play faster
 DONE - add banned word list
