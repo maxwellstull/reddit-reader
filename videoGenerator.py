@@ -13,7 +13,7 @@ import csv
 import pyttsx3 
 import json
 import shutil
-
+import string
 
 engine = pyttsx3.init()
 engine.setProperty('rate',150)
@@ -21,11 +21,12 @@ engine.setProperty('voice',"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\
 
 COMMENTS = 10
 DURATION = 60
+LIMIT = 10
 END_SIZE = (720,1280)
 row_char_width=60
 shorts_width = int(END_SIZE[0] / 2)
 MULTITHREADING = 6
-MODE = 'csv' # 'csv', 'search', 'topday', 'topweek'
+MODE = 'topweek' # 'csv', 'search', 'topday', 'topweek'
 
 class Title():
     def __init__(self, submission_id,score,title,sub,engine,text=""):
@@ -149,7 +150,7 @@ def main():
     YTSBack = ImageClip(os.getcwd() + '/YTSB.png').set_duration(DURATION).set_start(0)
     
     engine = pyttsx3.init()
-    engine.setProperty('rate',150)
+    engine.setProperty('rate',175)
     engine.setProperty('voice',"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0")
     
     with open('visitedposts.json','r') as fp:
@@ -160,7 +161,7 @@ def main():
     
     
     submissions = []
-    subs = ['AskReddit','AmITheAsshole']
+    subs = ['AskReddit','AmITheAsshole','ShowerThoughts', 'DoesAnybodyElse',]
     if MODE == 'csv':
         with open('urls.csv','r') as fp:
             reader = csv.reader(fp)
@@ -169,15 +170,15 @@ def main():
     elif MODE == 'search':
         query = "?"
         for sub in subs:
-            for submission in reddit.subreddit(sub).search(query, time_filter='week',sort='top',limit=10):
+            for submission in reddit.subreddit(sub).search(query, time_filter='week',sort='top',limit=LIMIT):
                 submissions.append(submission)
     elif MODE == 'topday':
         for sub in subs:
-            for submission in reddit.subreddit(sub).top(time_filter='day'):
+            for submission in reddit.subreddit(sub).top(time_filter='day',limit=LIMIT):
                 submissions.append(submission)
     elif MODE == 'topweek':
         for sub in subs:
-            for submission in reddit.subreddit(sub).top(time_filter='week'):
+            for submission in reddit.subreddit(sub).top(time_filter='week',limit=LIMIT):
                 submissions.append(submission)
 
     for submission in submissions:
@@ -189,7 +190,18 @@ def main():
         if submission.id in jason:
             print("Skipping because we already rendered for this")
             continue
-        
+        if len(submission.selftext) > 200:
+            print("shits too long")
+            continue
+        dirty_mouth = False
+        for word in submission.title.translate(submission.title.maketrans('','',string.punctuation)).split():
+            if word in bad_words:
+                dirty_mouth = True
+        for word in submission.selftext.translate(submission.selftext.maketrans('','',string.punctuation)).split():
+            if word in bad_words:
+                dirty_mouth = True
+        if dirty_mouth == True:
+            continue
         print("Post:",submission.title)
         title = Title(submission.id,submission.score,submission.title,submission.subreddit,engine,submission.selftext)
         title.process()
@@ -203,10 +215,9 @@ def main():
                 if word in bad_words:
                     dirty_mouth = True
             
-            if dirty_mouth == False:
+            if dirty_mouth == False and len(comment.body) < 400:
                 comment = Comment(comment.id,comment.score,comment.body,comment.body_html,submission.subreddit,submission.id,engine)
                 comments.append(comment)
-        print("Done with comments")
         ##########
         # Randomly select background video from content folder
         os.chdir("Content")
