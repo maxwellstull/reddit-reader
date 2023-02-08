@@ -289,17 +289,20 @@ def main():
         #  Inefficient but really fast compared to the time it takes to render the videos
         print("Creating comment objects")
         comments = []
-        for comment in submission.comments.list():
+        for comment in submission.comments:#.list():
             if isinstance(comment, MoreComments):
+                continue
+            if comment.link_id != comment.parent_id:
+                print("no", comment.link_id, comment.parent_id)
                 continue
             # Check if comment is bad
             dirty_mouth = False
-            for word in comment.body.split():
+            for word in comment.body.translate(comment.body.maketrans('','',string.punctuation)).split():
                 if word in bad_words:
                     dirty_mouth = True
             if dirty_mouth == False and len(comment.body) < 300:
-                comment = Comment(comment.id,comment.score,comment.body,comment.body_html,submission.subreddit,submission.id,engine)
-                comments.append(comment)
+                comment_obj = Comment(comment.id,comment.score,comment.body,comment.body_html,submission.subreddit,submission.id,engine)
+                comments.append(comment_obj)
                 
         ##########
         # Randomly select background video from content folder
