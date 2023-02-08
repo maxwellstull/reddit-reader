@@ -15,12 +15,13 @@ import json
 import shutil
 import string
 
+
 #engine = pyttsx3.init()
 #engine.setProperty('rate',150)
 #engine.setProperty('voice',"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0")
 
 # Top N comments to pull
-COMMENTS = 10
+COMMENTS = 20
 # Clip duration
 DURATION = 60
 # Amount of submissions to pull per subreddit
@@ -214,52 +215,15 @@ def main():
     with open('bannedwords.txt','r') as fp:
         bad_words = {line.strip():None for line in fp.readlines()}
     
-    ##########
-    # Accumulate the posts
-    ##########
-    submissions = []
-    # Subreddits to search in if not using csv mode
-    subs = ['AskReddit','AmITheAsshole','ShowerThoughts', 'DoesAnybodyElse',]
-    if MODE == 'csv':
-        with open('urls.csv','r') as fp:
-            reader = csv.reader(fp)
-            for i in reader:
-                submissions.append(reddit.submission(url=str(i[0])))
-    elif MODE == 'search':
-        query = "?"  ## Change this to get specific topics (like gaming or racing, etc)
-        for sub in subs:
-            for submission in reddit.subreddit(sub).search(query, time_filter='week',sort='top',limit=LIMIT):
-                submissions.append(submission)
-    elif MODE == 'topday':
-        for sub in subs:
-            for submission in reddit.subreddit(sub).top(time_filter='day',limit=LIMIT):
-                submissions.append(submission)
-    elif MODE == 'topweek':
-        for sub in subs:
-            for submission in reddit.subreddit(sub).top(time_filter='week',limit=LIMIT):
-                submissions.append(submission)
-    
-    ##########
-    # Do the stuff
-    ##########
-    for submission in submissions:
-        # Get subreddit object
-        subreddit = submission.subreddit
-        # Try to make a folder in the cwd of the subreddit name, for all posts from that subreddit to have relevant files in
-        if not os.path.exists(os.getcwd() + "/" + str(subreddit.display_name)):
-            os.mkdir(os.getcwd() + "/" + str(subreddit.display_name))
-
-        ##########
-        # Check if we need to skip this post
-        ##########
-        # Check if its already been visited
+    # Function to check if we need to skip a post
+    def checkSubmission(submission):
         if submission.id in jason:
             print("Skipping:\n ",submission.title,"\nBecause it has already been visited. (Post ID: ",submission.id,")")
-            continue
+            return False
         # Check if the text is too long
         if len(submission.selftext) > 200:
             print("Skipping:\n ",submission.title,"\nBecause there is too much text in the description. (Length: ",len(submission.selftext),")")
-            continue
+            return False
         # Check if there's banned words in the title or text
         dirty_mouth = False
         for word in submission.title.translate(submission.title.maketrans('','',string.punctuation)).split():
@@ -269,7 +233,51 @@ def main():
             if word in bad_words:
                 dirty_mouth = True
         if dirty_mouth == True:
-            continue
+            return False
+        return True
+    
+    
+    ##########
+    # Accumulate the posts
+    ##########
+    print("Beginning submission accumulation")
+    submissions = []
+    # Subreddits to search in if not using csv mode
+    subs = ['AskReddit','AmITheAsshole','ShowerThoughts', 'DoesAnybodyElse',]
+    if MODE == 'csv':
+        with open('urls.csv','r') as fp:
+            reader = csv.reader(fp)
+            for i in reader:
+                if checkSubmission(reddit.submission(url=str(i[0]))):
+                    submissions.append(reddit.submission(url=str(i[0])))
+    elif MODE == 'search':
+        query = "?"  ## Change this to get specific topics (like gaming or racing, etc)
+        for sub in subs:
+            for submission in reddit.subreddit(sub).search(query, time_filter='week',sort='top',limit=LIMIT):
+                if checkSubmission(submission):
+                    submissions.append(submission)
+    elif MODE == 'topday':
+        for sub in subs:
+            for submission in reddit.subreddit(sub).top(time_filter='day',limit=LIMIT):
+                if checkSubmission(submission):
+                    submissions.append(submission)
+    elif MODE == 'topweek':
+        for sub in subs:
+            for submission in reddit.subreddit(sub).top(time_filter='week',limit=LIMIT):
+                if checkSubmission(submission):
+                    submissions.append(submission)
+    
+    ##########
+    # Do the stuff
+    ##########
+    print("Beginning submission processing")
+    for submission in submissions:
+        # Get subreddit object
+        subreddit = submission.subreddit
+        # Try to make a folder in the cwd of the subreddit name, for all posts from that subreddit to have relevant files in
+        if not os.path.exists(os.getcwd() + "/" + str(subreddit.display_name)):
+            os.mkdir(os.getcwd() + "/" + str(subreddit.display_name))
+            
         ##########
         # Begin processing
         ##########
@@ -279,6 +287,7 @@ def main():
         title.process()
         # Create comment objects - for now every source comment (no replies) becomes an object.
         #  Inefficient but really fast compared to the time it takes to render the videos
+        print("Creating comment objects")
         comments = []
         for comment in submission.comments.list():
             if isinstance(comment, MoreComments):
@@ -295,6 +304,7 @@ def main():
         ##########
         # Randomly select background video from content folder
         ##########
+        print("Selecting background video")
         os.chdir("Content")
         file = random.choice(os.listdir())
         os.chdir("../")
@@ -339,6 +349,7 @@ def main():
         vid_group.append(background_clip)
         aud_group = acl.copy()
         # Iterate over comments
+        print("Beginning clip sorting")
         for comment in comment_list:
             # Make comment mp3 file
             comment.process()
@@ -407,8 +418,8 @@ def main():
            
         # Dump that we visited this file
         jason[submission.id] = True
-    #    with open('visitedposts.json','w') as fp:
-     #       json.dump(jason, fp)
+        with open('visitedposts.json','w') as fp:
+            json.dump(jason, fp)
         
         
 if __name__ == "__main__":
