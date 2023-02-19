@@ -14,7 +14,7 @@ import pyttsx3
 import json
 import shutil
 import string
-
+from uploader import uploadVideo
 
 #engine = pyttsx3.init()
 #engine.setProperty('rate',150)
@@ -29,7 +29,7 @@ LIMIT = 10
 # End resolution, 720x1280 for TT and YTShorts
 END_SIZE = (720,1280)
 # mode for getting posts
-MODE = 'topweek' # 'csv', 'search', 'topday', 'topweek'
+MODE = 'csv' # 'csv', 'search', 'topday', 'topweek'
 # DO NOT CHANGE PLEASE, its for how wide the generated html should be
 shorts_width = int(END_SIZE[0] / 2)
 # Experimental/in development setting for generated html
@@ -184,7 +184,16 @@ class Comment():
         return (self.score == obj.score)
     def __repr__(self):
         return str(self.score)
-        
+
+
+def get_tags(filename):
+    if "minecraft" in filename:
+        return ['minecraft','gaming','parkour']
+    elif 'satisfying' in filename:
+        return ['satisfying','sosatisfying','mmm','relaxing']
+    elif 'trackmania' in filename:
+        return ['gaming','racing','trackmania','speedrun']
+
        
 def main():
     ##########
@@ -243,7 +252,7 @@ def main():
     print("Beginning submission accumulation")
     submissions = []
     # Subreddits to search in if not using csv mode
-    subs = ['AskReddit','AmITheAsshole','ShowerThoughts', 'DoesAnybodyElse',]
+    subs = ['AskReddit','ShowerThoughts', 'DoesAnybodyElse','todayilearned']
     if MODE == 'csv':
         with open('urls.csv','r') as fp:
             reader = csv.reader(fp)
@@ -251,10 +260,11 @@ def main():
                 if checkSubmission(reddit.submission(url=str(i[0]))):
                     submissions.append(reddit.submission(url=str(i[0])))
     elif MODE == 'search':
-        query = "?"  ## Change this to get specific topics (like gaming or racing, etc)
+        query = "fake"  ## Change this to get specific topics (like gaming or racing, etc)
         for sub in subs:
             for submission in reddit.subreddit(sub).search(query, time_filter='week',sort='top',limit=LIMIT):
                 if checkSubmission(submission):
+                    print(submission.title)
                     submissions.append(submission)
     elif MODE == 'topday':
         for sub in subs:
@@ -347,6 +357,7 @@ def main():
         #  be different.
         vid_groups = []
         aud_groups = []
+        tag_groups = [get_tags(file)]
         # Duplicate the common things and store them
         vid_group = vcl.copy()
         vid_group.append(background_clip)
@@ -375,6 +386,7 @@ def main():
                 os.chdir("Content")
                 file = random.choice(os.listdir())
                 os.chdir("../")
+                tag_groups.append(get_tags(file))
                 background_clip = VideoFileClip("Content/"+file)
                 clip_start = random.randint(0,int(background_clip.duration-(DURATION+1)))
                 background_clip = background_clip.subclip(clip_start,clip_start+DURATION)
@@ -419,6 +431,28 @@ def main():
             # Copy the video we just rendered into the Videos/ folder
             shutil.copyfile(os.getcwd() + "/" + str(subreddit.display_name)+ "/" + str(submission.id)+"/YT"+str(i)+"Short"+ str(submission.id)+".mp4", os.getcwd() + "/Videos" + "/YT"+str(i)+"Short"+ str(submission.id)+".mp4")
            
+            # make title
+            nouns = ['my uncle','my aunt','my dad','my dog','you','my mom','lebrons legacy','my mailman','my wrestling coach']
+        
+            adjectives = ['does','does not','cant','wont','will','shall']
+            
+            other_thing = ['understand','hate','get rich','like','respect','savor','appreciate']
+            punctuation = ['???','!','!?','??!',"."]
+            
+            title = random.choice(nouns) + ' ' + random.choice(adjectives) + ' ' + random.choice(other_thing) + " this" + random.choice(punctuation)
+            
+            
+            tags = tag_groups[i] + ['reddit','shorts','fyp','foryou']
+            print("TITLE:",title)
+            print("TAGS:",tags)
+            # Upload stuff
+            
+            
+            
+            
+            
+            uploadVideo("da87f8fe38d2aa0b879212765977a961",os.getcwd() + "/Videos" + "/YT"+str(i)+"Short"+ str(submission.id)+".mp4", title, tags) 
+           
         # Dump that we visited this file
         jason[submission.id] = True
         with open('visitedposts.json','w') as fp:
@@ -427,4 +461,12 @@ def main():
         
 if __name__ == "__main__":
     main()
+    
+    
+    
+    
+    
+    
+    
+    
     
