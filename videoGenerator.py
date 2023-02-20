@@ -29,7 +29,7 @@ LIMIT = 10
 # End resolution, 720x1280 for TT and YTShorts
 END_SIZE = (720,1280)
 # mode for getting posts
-MODE = 'csv' # 'csv', 'search', 'topday', 'topweek'
+MODE = 'topday' # 'csv', 'search', 'topday', 'topweek'
 # DO NOT CHANGE PLEASE, its for how wide the generated html should be
 shorts_width = int(END_SIZE[0] / 2)
 # Experimental/in development setting for generated html
@@ -276,7 +276,7 @@ def main():
             for submission in reddit.subreddit(sub).top(time_filter='week',limit=LIMIT):
                 if checkSubmission(submission):
                     submissions.append(submission)
-    
+    upload_dump = []
     ##########
     # Do the stuff
     ##########
@@ -412,7 +412,10 @@ def main():
         if vid_group not in vid_groups:
             vid_groups.append(vid_group)
             aud_groups.append(aud_group)
+            tag_groups.append(get_tags(file))
         # Iterate over the groupings of video and audio we made
+        print((tag_groups))
+        print(len(vid_groups))
         for i in range(0, len(vid_groups)):
             # Do some work
             videoclips = CompositeVideoClip(vid_groups[i])
@@ -420,7 +423,7 @@ def main():
             videoclips = videoclips.set_audio(audioclips)
             # Trim clip in case audio doesnt go the full 60 seconds
             if audioclips.duration < DURATION:
-                videoclips = videoclips.subclip(0, audioclips.duration+0.5)
+                videoclips = videoclips.subclip(0, audioclips.duration)
             # If it is EXACTLY 60 seconds, make it 59.9 since youtube doesnt let 60 second vids into shorts (it thinks theyre longer i guess)
             else:
                 videoclips = videoclips.subclip(0, DURATION-0.1)
@@ -441,23 +444,35 @@ def main():
             
             title = random.choice(nouns) + ' ' + random.choice(adjectives) + ' ' + random.choice(other_thing) + " this" + random.choice(punctuation)
             
+            words = title.split(" ")
+            choices = random.choices([j for j in range(len(words))],k=random.randint(1,3))
+            for j in choices:
+                words[j] = words[j].upper()
+            title = " ".join(words)
             
+            
+            
+            
+            print("tag group: ", i)
             tags = tag_groups[i] + ['reddit','shorts','fyp','foryou']
             print("TITLE:",title)
             print("TAGS:",tags)
+            
+            
+            
+            
+            upload_dump.append((title, tags, os.getcwd() + "/Videos" + "/YT"+str(i)+"Short"+ str(submission.id)+".mp4"))
             # Upload stuff
-            
-            
-            
-            
-            
-            uploadVideo("da87f8fe38d2aa0b879212765977a961",os.getcwd() + "/Videos" + "/YT"+str(i)+"Short"+ str(submission.id)+".mp4", title, tags) 
+            #uploadVideo("da87f8fe38d2aa0b879212765977a961",os.getcwd() + "/Videos" + "/YT"+str(i)+"Short"+ str(submission.id)+".mp4", title, tags) 
            
         # Dump that we visited this file
         jason[submission.id] = True
         with open('visitedposts.json','w') as fp:
             json.dump(jason, fp)
-        
+    random.shuffle(upload_dump)
+    for i in upload_dump:
+        print("Uploading:", title, tags)
+        #uploadVideo("da87f8fe38d2aa0b879212765977a961",i[2],i[0],i[1]) 
         
 if __name__ == "__main__":
     main()

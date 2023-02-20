@@ -1,4 +1,6 @@
-- add generation of txt file that has title and tags
+- make title generation better
+    + remove top 3000 most common words, then generate something based on words
+- custom thumbnail generation
 - auto upload to youtube(pain in the butt https://developers.google.com/youtube/v3/guides/uploading_a_video)
 - make it steal images and put those in the video
 in progress - better choosing of the article
