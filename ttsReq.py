@@ -12,10 +12,11 @@ class Requester():
         self.session.headers = self.headers
         
         self.voices = {
-            'Obama':'TM:6k47jva4t0a1',
+            'Obama':'TM:58vtv7x9f32c',
             'BenShapiro':'TM:nqwew67rzwz4',
             'Trump':'TM:pyzss4phqk6r',
-            'Gottfried':'TM:d7anwftbpjqm'}
+            'Gottfried':'TM:d7anwftbpjqm',
+            'WalterWhite':'TM:8afk285jc2gs'}
     def make_job(self, voice, text):
         if voice not in self.voices:
             return False
@@ -39,4 +40,4 @@ class Requester():
             self.path = 'https://storage.googleapis.com/vocodes-public' + result_dict['state']['maybe_public_bucket_wav_audio_path']
     def save_file(self,title):
         r = requests.get(self.path)
-        open("{title}.wav".format(title=title),'wb').write(r.content)
+        open("{title}".format(title=title),'wb').write(r.content)

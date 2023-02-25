@@ -1,3 +1,5 @@
+- celebrity voices
+- reorganize. more stuff in objects
 - make title generation better
     + remove top 3000 most common words, then generate something based on words
 - custom thumbnail generation

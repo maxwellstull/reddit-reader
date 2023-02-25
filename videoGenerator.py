@@ -15,13 +15,14 @@ import json
 import shutil
 import string
 from uploader import uploadVideo
+from ttsReq import Requester
 
 #engine = pyttsx3.init()
 #engine.setProperty('rate',150)
 #engine.setProperty('voice',"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Speech\Voices\Tokens\TTS_MS_EN-US_DAVID_11.0")
 
 # Top N comments to pull
-COMMENTS = 20
+COMMENTS = 10
 # Clip duration
 DURATION = 60
 # Amount of submissions to pull per subreddit
@@ -29,7 +30,7 @@ LIMIT = 10
 # End resolution, 720x1280 for TT and YTShorts
 END_SIZE = (720,1280)
 # mode for getting posts
-MODE = 'topday' # 'csv', 'search', 'topday', 'topweek'
+MODE = 'csv' # 'csv', 'search', 'topday', 'topweek'
 # DO NOT CHANGE PLEASE, its for how wide the generated html should be
 shorts_width = int(END_SIZE[0] / 2)
 # Experimental/in development setting for generated html
@@ -58,7 +59,7 @@ class Title():
         # TTS engine (potentially no longer needed here)
         self.engine = engine
         # Generates the path to the file that will hold the mp3 TTS once generated
-        self.audio_file = os.getcwd() + "/" + str(self.subreddit.display_name)+ "/" + str(self.id)+"/title.mp3"
+        self.audio_file = os.getcwd() + "/" + str(self.subreddit.display_name)+ "/" + str(self.id)+"/title.wav"
         # Generates the path to the FOLDER that will hold the title screenshot
         self.image_file_path = os.getcwd() + "/" + str(self.subreddit.display_name)+ "/" + str(self.id)+"/"
         
@@ -134,7 +135,7 @@ class Comment():
         # TTS engine (depreciated)
         self.engine = engine
         # Generates the path to the file that will hold the mp3 TTS once generated
-        self.audio_file = os.getcwd() + "/" + str(self.subreddit.display_name)+ "/" + str(self.sid)+"/"+ str(self.id)+".mp3"
+        self.audio_file = os.getcwd() + "/" + str(self.subreddit.display_name)+ "/" + str(self.sid)+"/"+ str(self.id)+".wav"
         # Generates the path to the FOLDER that will hold the title screenshot
         self.image_file_path = os.getcwd() + "/" + str(self.subreddit.display_name)+ "/" + str(self.sid)
         # Generate screenshot image height. Still a WIP
@@ -199,6 +200,7 @@ def main():
     ##########
     # Initialize utilities
     ##########
+    requester = Requester()
     # Reddit scraper
     reddit = praw.Reddit(client_id="wbOHDFUEwMZstfLaG0n08g",#my client id
                          client_secret="3IzxmpIJJpC80D4txcCAKHqXJDbV3A",  #your client secret
@@ -226,9 +228,9 @@ def main():
     
     # Function to check if we need to skip a post
     def checkSubmission(submission):
-        if submission.id in jason:
-            print("Skipping:\n ",submission.title,"\nBecause it has already been visited. (Post ID: ",submission.id,")")
-            return False
+        #if submission.id in jason:
+        #    print("Skipping:\n ",submission.title,"\nBecause it has already been visited. (Post ID: ",submission.id,")")
+        #    return False
         # Check if the text is too long
         if len(submission.selftext) > 200:
             print("Skipping:\n ",submission.title,"\nBecause there is too much text in the description. (Length: ",len(submission.selftext),")")
@@ -335,8 +337,14 @@ def main():
         # Audio Clip list
         acl = []
         # Generate title sound file
-        engine.save_to_file(title.title,title.audio_file)
-        engine.runAndWait()
+#        engine.save_to_file(title.title,title.audio_file)
+#        engine.runAndWait()
+        requester.make_job('WalterWhite',title.title)
+        requester.poll_job_progress()
+        requester.save_file(title.audio_file)
+        
+        
+    
         vcl.append(title.getIC())
         acl.append(title.getAFC())
         
@@ -367,8 +375,11 @@ def main():
         for comment in comment_list:
             # Make comment mp3 file
             comment.process()
-            engine.save_to_file(comment.text, comment.audio_file)
-            engine.runAndWait()            
+#            engine.save_to_file(comment.text, comment.audio_file)
+#            engine.runAndWait()            
+            requester.make_job('WalterWhite',comment.text)
+            requester.poll_job_progress()
+            requester.save_file(comment.audio_file)
             # Get comment audio & image files
             af = comment.getAFC()
             vf = comment.getIC(next_start_ptr)
@@ -453,6 +464,8 @@ def main():
             
             
             
+            
+            
             print("tag group: ", i)
             tags = tag_groups[i] + ['reddit','shorts','fyp','foryou']
             print("TITLE:",title)
@@ -473,6 +486,7 @@ def main():
     for i in upload_dump:
         print("Uploading:", title, tags)
         #uploadVideo("da87f8fe38d2aa0b879212765977a961",i[2],i[0],i[1]) 
+        
         
 if __name__ == "__main__":
     main()
