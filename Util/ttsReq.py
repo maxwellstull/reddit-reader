@@ -32,10 +32,10 @@ class Requester():
         result = self.session.get("https://api.fakeyou.com/tts/job/{tok}".format(tok=self.job_token))
         result_dict = json.loads(result.text)
         while result_dict['state']['status'] == 'pending' or result_dict['state']['status'] == 'started':
-            time.sleep(3)
+            time.sleep(5)
             result = self.session.get("https://api.fakeyou.com/tts/job/{tok}".format(tok=self.job_token))
             result_dict = json.loads(result.text)
-            print("still waiting")
+            print(result_dict['state']['status'])
         if result_dict['state']['status'] == 'complete_success':
             self.path = 'https://storage.googleapis.com/vocodes-public' + result_dict['state']['maybe_public_bucket_wav_audio_path']
     def save_file(self,title):

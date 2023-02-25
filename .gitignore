@@ -1,4 +1,10 @@
 .spyproject/
-10sojt9/
 filler.mp4
 bannedwords.txt
+Videos/*
+Content/*
+*.png
+*.mp3
+*.mp4
+*.wav
+__pycache__/
