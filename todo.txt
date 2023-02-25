@@ -6,6 +6,7 @@
 - auto upload to youtube(pain in the butt https://developers.google.com/youtube/v3/guides/uploading_a_video)
 - make it steal images and put those in the video
 in progress - better choosing of the article
+- improve querying
 - better choosing of background video
 in progress - get other voices working (change TTS library again?)
 - make it render with gpu

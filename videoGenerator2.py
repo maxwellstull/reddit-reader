@@ -19,7 +19,7 @@ from Utility import Objects
 
 ###Config 
 # Top N comments to pull
-COMMENTS = 10
+COMMENTS = 20
 # Clip duration
 DURATION = 60
 # Amount of submissions to pull per subreddit
@@ -27,7 +27,7 @@ LIMIT = 10
 # End resolution, 720x1280 for TT and YTShorts
 END_SIZE = (720,1280)
 # mode for getting posts
-MODE = 'csv' # 'csv', 'search', 'topday', 'topweek'
+MODE = 'topday' # 'csv', 'search', 'topday', 'topweek'
 # DO NOT CHANGE PLEASE, its for how wide the generated html should be
 shorts_width = int(END_SIZE[0] / 2)
 # Experimental/in development setting for generated html
@@ -41,7 +41,6 @@ SCALE = 2
 
 
 def main():
-    print("uhh, hi")
     #### Initialize
     # tts requester
     requester = ttsReq.Requester()
@@ -92,7 +91,7 @@ def main():
     print("Beginning submission accumulation")
     submissions = []
     # Subreddits to search in if not using csv mode
-    subs = ['AskReddit','ShowerThoughts', 'DoesAnybodyElse','todayilearned']
+    subs = ['AskReddit']#,'ShowerThoughts', 'DoesAnybodyElse','todayilearned']
     if MODE == 'csv':
         with open('Utility/urls.csv','r') as fp:
             reader = csv.reader(fp)
@@ -151,22 +150,21 @@ def main():
         
         pref = 1
         
+        voice = random.choice(list(requester.voices.keys()))
+        
         if pref == 0:
             engine.save_to_file(title_o.title,title_o.audio_file_path)
             engine.runAndWait()
         elif pref == 1:
-            requester.make_job('WalterWhite',title_o.title)
-            requester.poll_job_progress()
-            requester.save_file(title_o.audio_file)
+            requester.queue(voice,title_o.title,title_o.audio_file_path)
         for comment in comment_list:
             if pref == 0: #local engine
                 engine.save_to_file(comment.text, comment.audio_file_path)
                 engine.runAndWait()       
             elif pref == 1: #SLOW celebrity engine
-                requester.make_job('WalterWhite',comment.text)
-                requester.poll_job_progress()
-                requester.save_file(comment.audio_file)
-        
+                requester.queue(voice,comment.text,comment.audio_file_path)
+
+        requester.poll_job_progress()
        
         mg = Objects.MediaGroups(title_o.getIC(),
                                  title_o.getAFC())
