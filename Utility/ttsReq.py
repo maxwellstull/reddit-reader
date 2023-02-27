@@ -12,9 +12,9 @@ class Requester():
         self.session.headers = self.headers
         
         self.voices = {
-            'Obama':'TM:58vtv7x9f32c',
-            'BenShapiro':'TM:nqwew67rzwz4',
-            'Trump':'TM:pyzss4phqk6r',
+            #'Obama':'TM:58vtv7x9f32c',
+            #'BenShapiro':'TM:nqwew67rzwz4',
+            #'Trump':'TM:pyzss4phqk6r',
             'Gottfried':'TM:d7anwftbpjqm',
             'WalterWhite':'TM:8afk285jc2gs',
             'Quandale':'TM:4hrcg59rf6mp',

@@ -91,7 +91,7 @@ def main():
     print("Beginning submission accumulation")
     submissions = []
     # Subreddits to search in if not using csv mode
-    subs = ['AskReddit']#,'ShowerThoughts', 'DoesAnybodyElse','todayilearned']
+    subs = ['AskReddit','ShowerThoughts', 'DoesAnybodyElse','todayilearned']
     if MODE == 'csv':
         with open('Utility/urls.csv','r') as fp:
             reader = csv.reader(fp)
@@ -174,7 +174,9 @@ def main():
             mg.add_av(comment)
     
         mg.render_all(os.getcwd() + "/Videos/","YT"+str(submission.id)+".mp4")
-    
+        jason[submission.id] = True
+        with open('visitedposts.json','w') as fp:
+            json.dump(jason, fp)
     
     
     
